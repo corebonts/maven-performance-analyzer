@@ -4,7 +4,7 @@ import { ModuleStats } from "../../analyzer/analyzer";
 import { ExpandableCard } from "./ExpandableCard";
 import { diagramHeight } from "./diagramUtils";
 import { ResponsiveTreeMap, TooltipProps } from "@nivo/treemap";
-import { useTheme } from "@nivo/core";
+import { useTheme } from "@nivo/theming";
 import { grey } from "@mui/material/colors";
 import {
   labelForTreeMapNode,
