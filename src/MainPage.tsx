@@ -35,10 +35,12 @@ const MainPage = () => {
           <>
             <HeatmapCard
               data={mavenPluginsStats}
-              stats={analyzerResult.stats}
               concurrencyTimeMap={analyzerResult.concurrencyTimeMap}
             />
-            <TimelineCard data={mavenPluginsStats} />
+            <TimelineCard
+              data={mavenPluginsStats}
+              stats={analyzerResult.stats}
+            />
             <ModulesCard data={mavenPluginsStats} />
             <MavenPluginsCard data={mavenPluginsStats} />
           </>

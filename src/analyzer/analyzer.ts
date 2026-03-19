@@ -57,7 +57,7 @@ export interface AnalyzerResult {
   readonly stats?: GeneralStats;
   readonly tests?: TestStats;
   readonly messages: AnalyzerMessages;
-  readonly concurrencyTimeMap: ReadonlyArray<ConcurrencyTimeMapEntry>;
+  readonly concurrencyTimeMap?: ReadonlyArray<ConcurrencyTimeMapEntry>;
 }
 
 const MINIMUM_DURATION_IN_MS = 0;

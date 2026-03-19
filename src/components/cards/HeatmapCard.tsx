@@ -10,7 +10,7 @@ import { prettyMs } from "../../utils/utils";
 
 interface Props {
   data: ReadonlyArray<MavenPluginStats>;
-  concurrencyTimeMap: ReadonlyArray<ConcurrencyTimeMapEntry>;
+  concurrencyTimeMap?: ReadonlyArray<ConcurrencyTimeMapEntry>;
 }
 
 interface ModuleBuildTime {
