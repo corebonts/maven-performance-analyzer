@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, FormControlLabel, Switch } from "@mui/material";
 import { FunctionComponent } from "react";
 import { GeneralStats, MavenPluginStats } from "../../analyzer/analyzer";
 import { ExpandableCard } from "./ExpandableCard";
@@ -7,6 +7,7 @@ import ReactApexChart, { Props as ApexChartProps } from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { dedup } from "../../utils/arrayUtils";
 import { grey } from "@mui/material/colors";
+import { useSettings } from "../../settings/useSettings";
 
 interface Props {
   data: ReadonlyArray<MavenPluginStats>;
@@ -21,6 +22,8 @@ interface DataWithDuration {
 }
 
 export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
+  const { settings, setSettings } = useSettings();
+
   const barData = data.reduce(
     (arr, { thread, module, duration, startTime }) => {
       const existing = arr.find(
@@ -48,7 +51,7 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
   const threadInfoMissing =
     !!stats?.multiThreaded && originalThreads.length <= 1;
 
-  if (threadInfoMissing) {
+  if (threadInfoMissing && settings.timelineInferThreads) {
     barData.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     const threadFreeTime: number[] = [];
     const maxThreads = stats?.threads || 1;
@@ -119,7 +122,7 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
       },
     },
     dataLabels: {
-      enabled: true,
+      enabled: settings.timelineShowLabels,
       textAnchor: "start",
       offsetX: -35,
       style: {
@@ -176,8 +179,16 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
       },
     },
     tooltip: {
-      x: {
-        format: "HH:mm:ss",
+      custom: function ({ dataPointIndex }) {
+        const data = barData[dataPointIndex];
+        const durationStr = new Date(data.duration)
+          .toISOString()
+          .substring(14, 19);
+        return `<div style="padding: 10px;">
+          <strong>${data.module}</strong><br/>
+          Duration: ${durationStr}<br/>
+          Thread: ${data.thread}
+        </div>`;
       },
     },
   };
@@ -187,14 +198,47 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
     "normal",
   );
 
-  const subheader =
-    "Visualizes execution order and dependencies for multi-module builds. Each line represents a module. In case of multithreaded builds, multiple modules are built concurrently." +
-    (threadInfoMissing
-      ? " Disclaimer: Thread information was missing from the logs, so threads were inferred based on execution times. This is an approximation."
-      : " Only works, if the thread name is part of the log file.");
+  let subheader =
+    "Visualizes execution order and dependencies for multi-module builds. Each line represents a module. In case of multithreaded builds, multiple modules are built concurrently.";
+  if (threadInfoMissing) {
+    if (settings.timelineInferThreads) {
+      subheader +=
+        " Disclaimer: Thread information was missing from the logs, so threads were inferred based on execution times. This is an approximation.";
+    } else {
+      subheader += " Thread information is missing from the logs.";
+    }
+  } else {
+    subheader += " Only works, if the thread name is part of the log file.";
+  }
 
   return (
     <ExpandableCard expanded={true} title="Timeline" subheader={subheader}>
+      <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
+        {threadInfoMissing && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={settings.timelineInferThreads}
+                onChange={(e) =>
+                  setSettings({ timelineInferThreads: e.target.checked })
+                }
+              />
+            }
+            label="Infer threads"
+          />
+        )}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.timelineShowLabels}
+              onChange={(e) =>
+                setSettings({ timelineShowLabels: e.target.checked })
+              }
+            />
+          }
+          label="Show labels"
+        />
+      </Box>
       <ReactApexChart
         options={options}
         series={series}
