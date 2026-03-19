@@ -6,6 +6,7 @@ export default defineConfig(() => {
   return {
     build: {
       outDir: "build",
+      chunkSizeWarningLimit: 2000,
     },
     plugins: [react(), eslint()],
     // Helps with esm compatibility issues for nivo, see https://github.com/plouc/nivo/issues/2310

@@ -130,6 +130,7 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
         fontWeight: "normal",
       },
       formatter: function (val, opts) {
+        if (!opts) return "";
         const label = barData[opts.dataPointIndex].module;
         if (Array.isArray(val)) {
           const from = new Date(val[0]);
@@ -179,7 +180,8 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
       },
     },
     tooltip: {
-      custom: function ({ dataPointIndex }) {
+      custom: function (opts) {
+        const { dataPointIndex } = opts;
         const data = barData[dataPointIndex];
         const durationStr = new Date(data.duration)
           .toISOString()
