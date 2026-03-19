@@ -5,7 +5,6 @@ import { ExpandableCard } from "./ExpandableCard";
 import { diagramHeight, muiDistinctColors } from "./diagramUtils";
 import ReactApexChart, { Props as ApexChartProps } from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import { dedup } from "../../utils/arrayUtils";
 import { grey } from "@mui/material/colors";
 import { useSettings } from "../../settings/useSettings";
 
@@ -47,9 +46,8 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
     [] as DataWithDuration[],
   );
 
-  const originalThreads = dedup(barData.map((b) => b.thread));
-  const threadInfoMissing =
-    !!stats?.multiThreaded && originalThreads.length <= 1;
+  const originalThreads = new Set(barData.map((b) => b.thread));
+  const threadInfoMissing = !!stats?.multiThreaded && originalThreads.size <= 1;
 
   if (threadInfoMissing && settings.timelineInferThreads) {
     barData.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
@@ -80,9 +78,9 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
     });
   }
 
-  const threads = dedup(barData.map((b) => b.thread));
-  const modules = dedup(barData.map((b) => b.module));
-  const multiThreaded = threads.length > 1;
+  const threads = new Set(barData.map((b) => b.thread));
+  const modules = new Set(barData.map((b) => b.module));
+  const multiThreaded = threads.size > 1;
 
   const series: ApexChartProps["series"] = [
     {
@@ -196,7 +194,7 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
   };
 
   const height = diagramHeight(
-    multiThreaded ? threads.length : modules.length,
+    multiThreaded ? threads.size : modules.size,
     "normal",
   );
 

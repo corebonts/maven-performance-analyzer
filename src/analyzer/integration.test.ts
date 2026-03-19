@@ -1,8 +1,9 @@
 import { readFileSync } from "fs";
-import { dedup } from "../utils/arrayUtils";
 import { analyze, MavenPluginStats } from "./analyzer";
 import { parse, TestStatistic } from "./parser";
 import { describe, it, expect } from "vitest";
+
+const dedup = (arr: string[]) => [...new Set(arr)];
 
 describe("parser and analyzer", () => {
   it("empty input", () => {

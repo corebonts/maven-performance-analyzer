@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { FunctionComponent } from "react";
+import { FunctionComponent, useMemo } from "react";
 import { BarDatum, ResponsiveBar } from "@nivo/bar";
 import { MavenPluginStats } from "../../analyzer/analyzer";
 import { ExpandableCard } from "./ExpandableCard";
@@ -10,7 +10,6 @@ import {
   diagramHeight,
   muiDistinctColors,
 } from "./diagramUtils";
-import { dedup } from "../../utils/arrayUtils";
 
 interface Props {
   data: ReadonlyArray<MavenPluginStats>;
@@ -22,60 +21,38 @@ interface DataWithDuration extends BarDatum {
   totalDuration: number;
 }
 
-const totalDuration = (
-  data: ReadonlyArray<MavenPluginStats>,
-  module: string,
-) => {
-  return data
-    .filter((d) => d.module === module)
-    .reduce((sum, d) => sum + d.duration, 0);
-};
-
-interface AggregatedPluginStats {
-  module: string;
-  plugin: string;
-  duration: number;
-}
-
 export const ModulesCard: FunctionComponent<Props> = ({ data }) => {
-  const barData: DataWithDuration[] = data
-    .reduce((arr, curr) => {
-      // first join multiple occurrences of the same plugin
-      const existing = arr.find(
-        (e) => e.module === curr.module && e.plugin === curr.plugin,
-      );
-      if (existing) {
-        return [
-          ...arr.filter((f) => f !== existing),
-          { ...curr, duration: existing.duration + curr.duration },
-        ];
-      } else {
-        arr.push(curr);
-      }
-      return arr;
-    }, [] as AggregatedPluginStats[])
-    .reduce((arr, curr) => {
-      const existing = arr.find((e) => e.module === curr.module);
-      if (existing) {
-        Object.assign(existing, { [curr.plugin]: curr.duration });
-      } else {
-        arr.push({
-          module: curr.module,
-          [curr.plugin]: curr.duration,
-          totalDuration: totalDuration(data, curr.module),
-        });
-      }
-      return arr;
-    }, [] as DataWithDuration[]);
+  const { barData, keys, modules } = useMemo(() => {
+    // Single pass to aggregate everything
+    const moduleMap = new Map<string, DataWithDuration>();
+    const keySet = new Set<string>();
 
-  // extract relevant keys and remove duplicates
-  const keys = dedup(
-    barData.flatMap((f) =>
-      Object.keys(f).filter((f) => f !== "module" && f !== "totalDuration"),
-    ),
-  );
-  const modules = dedup(barData.flatMap((f) => f.module));
-  barData.sort((a, b) => a.totalDuration - b.totalDuration);
+    for (const d of data) {
+      let moduleData = moduleMap.get(d.module);
+      if (!moduleData) {
+        moduleData = {
+          module: d.module,
+          totalDuration: 0,
+        };
+        moduleMap.set(d.module, moduleData);
+      }
+
+      const pluginKey = d.plugin;
+      const currentDuration = (moduleData[pluginKey] as number) || 0;
+      moduleData[pluginKey] = currentDuration + d.duration;
+      moduleData.totalDuration += d.duration;
+      keySet.add(pluginKey);
+    }
+
+    const barDataArray = Array.from(moduleMap.values());
+    barDataArray.sort((a, b) => a.totalDuration - b.totalDuration);
+
+    return {
+      barData: barDataArray,
+      keys: Array.from(keySet).sort(),
+      modules: barDataArray.map((d) => d.module),
+    };
+  }, [data]);
 
   return (
     <ExpandableCard
@@ -86,7 +63,7 @@ export const ModulesCard: FunctionComponent<Props> = ({ data }) => {
         <ResponsiveBar
           {...basicBarCharProps}
           data={barData}
-          keys={keys.sort()}
+          keys={keys}
           indexBy="module"
           layout="horizontal"
           colors={muiDistinctColors}

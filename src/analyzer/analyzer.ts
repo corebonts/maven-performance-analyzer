@@ -1,4 +1,3 @@
-import { dedup, replace } from "../utils/arrayUtils";
 import { ifDefinedOrDefault } from "../utils/utils";
 import { isValid } from "./dateUtils";
 import { ParserResult } from "./parser";
@@ -72,91 +71,54 @@ export const analyze = ({
 }: ParserResult): AnalyzerResult => {
   lines.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
-  const aggregatedCompiledSources: ModuleStats[] = compiledSources.reduce(
-    (arr, curr) => {
-      const existing = arr.find((c) => c.module === curr.module);
-      if (existing) {
-        let updatedExisting: ModuleStats | undefined;
-        if (curr.type === "source") {
-          switch (curr.compileMode) {
-            case "main":
-              updatedExisting = {
-                ...existing,
-                compiledSources:
-                  existing.compiledSources + curr.compiledSources,
-              };
-              break;
-            case "test":
-              updatedExisting = {
-                ...existing,
-                compiledTestSources:
-                  existing.compiledTestSources + curr.compiledSources,
-              };
-              break;
-          }
-        } else {
-          switch (curr.compileMode) {
-            case "main":
-              updatedExisting = {
-                ...existing,
-                copiedResources:
-                  existing.copiedResources + curr.copiedResources,
-              };
-              break;
-            case "test":
-              updatedExisting = {
-                ...existing,
-                copiedTestResources:
-                  existing.copiedTestResources + curr.copiedResources,
-              };
-              break;
-          }
-        }
-        arr = replace(arr, existing, updatedExisting);
-      } else {
-        const analyzedModule = {
-          module: curr.module,
-          compiledSources: 0,
-          compiledTestSources: 0,
-          copiedResources: 0,
-          copiedTestResources: 0,
-        };
-        if (curr.type === "source") {
-          switch (curr.compileMode) {
-            case "main":
-              analyzedModule.compiledSources = curr.compiledSources;
-              break;
-            case "test":
-              analyzedModule.compiledTestSources = curr.compiledSources;
-              break;
-          }
-        } else {
-          switch (curr.compileMode) {
-            case "main":
-              analyzedModule.copiedResources = curr.copiedResources;
-              break;
-            case "test":
-              analyzedModule.copiedTestResources = curr.copiedResources;
-              break;
-          }
-        }
+  const aggregatedCompiledSourcesMap = new Map<string, ModuleStats>();
+  for (const curr of compiledSources) {
+    const existing = aggregatedCompiledSourcesMap.get(curr.module) ?? {
+      module: curr.module,
+      compiledSources: 0,
+      compiledTestSources: 0,
+      copiedResources: 0,
+      copiedTestResources: 0,
+    };
 
-        arr.push(analyzedModule);
+    const updated = { ...existing };
+    if (curr.type === "source") {
+      if (curr.compileMode === "main") {
+        updated.compiledSources += curr.compiledSources;
+      } else {
+        updated.compiledTestSources += curr.compiledSources;
       }
-      return arr;
-    },
-    [] as ModuleStats[],
+    } else {
+      if (curr.compileMode === "main") {
+        updated.copiedResources += curr.copiedResources;
+      } else {
+        updated.copiedTestResources += curr.copiedResources;
+      }
+    }
+    aggregatedCompiledSourcesMap.set(curr.module, updated);
+  }
+  const aggregatedCompiledSources = Array.from(
+    aggregatedCompiledSourcesMap.values(),
   );
 
-  const threads = dedup(lines.map((r) => r.thread));
-  const mavenPlugins = threads
+  const threadGroups = new Map<string | undefined, typeof lines>();
+  for (const line of lines) {
+    const thread = line.thread;
+    const group = threadGroups.get(thread) ?? [];
+    group.push(line);
+    threadGroups.set(thread, group);
+  }
+
+  const threadIds = Array.from(threadGroups.keys());
+  const lastTimestampsMap = new Map(
+    lastTimestamps.map((t) => [t.thread, t.lastTimestamp]),
+  );
+
+  const mavenPlugins = threadIds
     .flatMap((thread) => {
-      const threadLines = lines.filter(
-        (l) => l.thread === undefined || l.thread === thread,
-      );
-      const lastTimestamp = lastTimestamps.find(
-        (t) => t.thread === thread,
-      )?.lastTimestamp;
+      const threadLines = threadGroups.get(thread)!;
+      const lastTimestamp = lastTimestampsMap.get(thread);
+
       return threadLines.map(({ module, plugin, startTime }, idx) => {
         const nextLineInSameModule = threadLines
           .slice(idx + 1)
@@ -166,8 +128,6 @@ export const analyze = ({
         if (nextLineInSameModule) {
           nextStartTime = nextLineInSameModule.startTime;
         } else {
-          // It's the last plugin for this module in this thread.
-          // Use the next line in the thread, regardless of module.
           if (idx < threadLines.length - 1) {
             nextStartTime = threadLines[idx + 1].startTime;
           } else {
@@ -197,20 +157,22 @@ export const analyze = ({
       startTime: number;
       endTime: number;
     }[] = [];
-    const moduleNames = dedup(mavenPlugins.map((p) => p.module));
+    const pluginsByModule = new Map<string, MavenPluginStats[]>();
+    for (const p of mavenPlugins) {
+      const list = pluginsByModule.get(p.module) ?? [];
+      list.push(p);
+      pluginsByModule.set(p.module, list);
+    }
 
-    for (const moduleName of moduleNames) {
-      const modulePlugins = mavenPlugins.filter((p) => p.module === moduleName);
-      if (modulePlugins.length > 0) {
-        const startTime = Math.min(
-          ...modulePlugins.map((p) => p.startTime.getTime()),
-        );
-        const endTime = Math.max(
-          ...modulePlugins.map((p) => p.startTime.getTime() + p.duration),
-        );
-        if (endTime > startTime) {
-          moduleExecutions.push({ module: moduleName, startTime, endTime });
-        }
+    for (const [moduleName, modulePlugins] of pluginsByModule) {
+      const startTime = Math.min(
+        ...modulePlugins.map((p) => p.startTime.getTime()),
+      );
+      const endTime = Math.max(
+        ...modulePlugins.map((p) => p.startTime.getTime() + p.duration),
+      );
+      if (endTime > startTime) {
+        moduleExecutions.push({ module: moduleName, startTime, endTime });
       }
     }
 
@@ -300,7 +262,7 @@ const determineMessages = (
   const multiThreadedNoThreads =
     stats.multiThreaded &&
     stats.threads > 1 &&
-    dedup(mavenPlugins.map((p) => p.thread)).length === 1;
+    new Set(mavenPlugins.map((p) => p.thread)).size === 1;
   const errorText = noMetricsFound
     ? "No metrics could be found. Please make sure to provide a valid maven log file with timestamp information as described above."
     : undefined;

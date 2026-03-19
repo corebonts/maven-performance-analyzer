@@ -1,6 +1,5 @@
 import { ifDefined } from "../utils/utils";
 import { isValid } from "./dateUtils";
-import { dedup } from "../utils/arrayUtils";
 import { parse as parseDate, parseISO } from "date-fns";
 
 export interface MavenGoalExecutionLine {
@@ -121,7 +120,7 @@ export const parse = (logContent: string): ParserResult => {
         }),
       )
       .filter((l) => l) as MavenGoalExecutionLine[];
-    const threads = dedup(
+    const threads = new Set(
       mavenGoalExecutionLines.map((r) => r.thread).filter((l) => l) as string[],
     );
     return {
@@ -151,48 +150,42 @@ const matchGroupsAndProcess = <T>(
 
 const findLastTimeStamps = (
   lines: string[],
-  threads: string[],
+  threads: Set<string>,
 ): LastTimestamp[] => {
   console.time("parsing last timestamps");
 
   const lastTimestamps: LastTimestamp[] = [];
-  if (threads.length > 0) {
-    threads.forEach((thread) => {
-      let lastTimestamp: Date | undefined = undefined;
-      for (let i = lines.length - 1; i >= 0; i--) {
-        lastTimestamp = matchGroupsAndProcess(
-          lines[i],
-          anyMavenLogWithTimestamp,
-          ({ thread: t, date }) => {
-            return thread === t ? parseTimestamp(date) : undefined;
-          },
-        );
-        if (lastTimestamp) {
-          // stop loop after first match
-          break;
-        }
-      }
-      if (lastTimestamp) {
-        lastTimestamps.push({
-          thread,
-          lastTimestamp,
-        });
-      }
-    });
-  } else {
-    let lastTimestamp: Date | undefined = undefined;
+  if (threads.size > 0) {
+    const remainingThreads = new Set(threads);
     for (let i = lines.length - 1; i >= 0; i--) {
-      lastTimestamp = matchGroupsAndProcess(
+      matchGroupsAndProcess(
+        lines[i],
+        anyMavenLogWithTimestamp,
+        ({ thread: t, date }) => {
+          if (t !== undefined && remainingThreads.has(t)) {
+            lastTimestamps.push({
+              thread: t,
+              lastTimestamp: parseTimestamp(date),
+            });
+            remainingThreads.delete(t);
+          }
+        },
+      );
+      if (remainingThreads.size === 0) {
+        break;
+      }
+    }
+  } else {
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const lastTimestamp = matchGroupsAndProcess(
         lines[i],
         anyMavenLogWithTimestamp,
         ({ date }) => parseTimestamp(date),
       );
       if (lastTimestamp) {
+        lastTimestamps.push({ lastTimestamp });
         break;
       }
-    }
-    if (lastTimestamp) {
-      lastTimestamps.push({ lastTimestamp });
     }
   }
   console.timeEnd("parsing last timestamps");
@@ -410,6 +403,8 @@ function parseSize(sizeWithUnit: string): number {
         return sizeNumber * 1024;
       case "MB":
         return sizeNumber * 1024 * 1024;
+      case "GB": // Added GB just in case
+        return sizeNumber * 1024 * 1024 * 1024;
     }
   }
   throw new Error("Cannot parse download size with unit: " + sizeWithUnit);
