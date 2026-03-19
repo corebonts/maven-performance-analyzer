@@ -2,11 +2,15 @@ import { FunctionComponent } from "react";
 import ReactApexChart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { ExpandableCard } from "./ExpandableCard";
-import { MavenPluginStats } from "../../analyzer/analyzer";
+import {
+  ConcurrencyTimeMapEntry,
+  MavenPluginStats,
+} from "../../analyzer/analyzer";
 import { prettyMs } from "../../utils/utils";
 
 interface Props {
   data: ReadonlyArray<MavenPluginStats>;
+  concurrencyTimeMap: ReadonlyArray<ConcurrencyTimeMapEntry>;
 }
 
 interface ModuleBuildTime {
@@ -15,7 +19,10 @@ interface ModuleBuildTime {
   endTime: number;
 }
 
-export const HeatmapCard: FunctionComponent<Props> = ({ data }) => {
+export const HeatmapCard: FunctionComponent<Props> = ({
+  data,
+  concurrencyTimeMap,
+}) => {
   const moduleBuildTimes = data.reduce((acc, item) => {
     const existing = acc.find((m) => m.module === item.module);
     const endTime = item.startTime.getTime() + item.duration;
@@ -52,21 +59,34 @@ export const HeatmapCard: FunctionComponent<Props> = ({ data }) => {
     const overlappingModules = moduleBuildTimes.filter(
       (m) => m.startTime < bucketEnd && m.endTime > bucketStart,
     );
+    let maxConcurrencyInBucket = 0;
+    if (concurrencyTimeMap) {
+      const overlappingEntries = concurrencyTimeMap.filter(
+        (entry) => entry.startTime < bucketEnd && entry.endTime > bucketStart,
+      );
+      if (overlappingEntries.length > 0) {
+        maxConcurrencyInBucket = Math.max(
+          ...overlappingEntries.map((e) => e.concurrency),
+        );
+      }
+    }
     return {
       x: prettyMs(i * bucketWidth),
-      y: overlappingModules.length,
+      y: maxConcurrencyInBucket,
       modules: overlappingModules.map(
         (m) =>
           `${m.module} (${prettyMs(m.startTime - minTime)} - ${prettyMs(
             m.endTime - minTime,
           )})`,
       ),
+      maxConcurrency: maxConcurrencyInBucket,
+      moduleCount: overlappingModules.length,
     };
   });
 
   const series = [
     {
-      name: "Concurrency",
+      name: "Modules involved",
       data: heatmapData,
     },
   ];
@@ -94,18 +114,18 @@ export const HeatmapCard: FunctionComponent<Props> = ({ data }) => {
             },
             {
               from: 1,
-              to: 2,
-              name: "1-2",
+              to: 3,
+              name: "1-3",
               color: "#1E88E5",
             },
             {
-              from: 3,
-              to: 5,
-              name: "3-5",
+              from: 4,
+              to: 6,
+              name: "4-6",
               color: "#FFB74D",
             },
             {
-              from: 6,
+              from: 7,
               to: 20,
               name: "6-20",
               color: "#D32F2F",
@@ -144,11 +164,12 @@ export const HeatmapCard: FunctionComponent<Props> = ({ data }) => {
       custom: function ({ seriesIndex, dataPointIndex, w }) {
         const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
         if (data.y === 0) {
-          return `<div class="p-2"><strong>Time:</strong> ${data.x}<br/><strong>Concurrency:</strong> 0</div>`;
+          return `<div class="p-2"><strong>Time:</strong> ${data.x}<br/><strong>Modules involved:</strong> 0</div>`;
         }
         return `<div class="p-2">
           <strong>Time:</strong> ${data.x}<br/>
-          <strong>Concurrency:</strong> ${data.y}<br/>
+          <strong>Modules involved:</strong> ${data.y}<br/>
+          <strong>Maximum concurrency:</strong> ${data.maxConcurrency}<br/>
           <strong>Modules:</strong><br/>
           <ul>${data.modules.map((m: string) => `<li>${m}</li>`).join("")}</ul>
         </div>`;
@@ -159,7 +180,7 @@ export const HeatmapCard: FunctionComponent<Props> = ({ data }) => {
   return (
     <ExpandableCard
       title="Concurrency Heatmap"
-      subheader="Shows how many modules were being built in parallel over time. Disclaimer: it might not be accurate, as it actually shows all the modules that are built in that period not actual concurrency."
+      subheader="Shows how many modules were involved in the build over time, and what was the maximum concurrency in that time range."
       expanded={true}
     >
       <ReactApexChart

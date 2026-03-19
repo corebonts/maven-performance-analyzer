@@ -375,5 +375,7 @@ describe("parser and analyzer", () => {
       durationSumForPlugin(result.mavenPlugins, "maven-compiler-plugin"),
     ).toEqual(1206);
     expect(dedup(result.mavenPlugins.map((r) => r.thread))).toEqual(["main"]);
+    expect(result.stats?.multiThreaded).toEqual(true);
+    expect(result.stats?.threads).toEqual(2);
   });
 });

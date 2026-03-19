@@ -45,12 +45,19 @@ export interface AnalyzerMessages {
   readonly error?: string;
 }
 
+export interface ConcurrencyTimeMapEntry {
+  readonly startTime: number;
+  readonly endTime: number;
+  readonly concurrency: number;
+}
+
 export interface AnalyzerResult {
   readonly mavenPlugins: ReadonlyArray<MavenPluginStats>;
   readonly modules: ReadonlyArray<ModuleStats>;
   readonly stats?: GeneralStats;
   readonly tests?: TestStats;
   readonly messages: AnalyzerMessages;
+  readonly concurrencyTimeMap: ReadonlyArray<ConcurrencyTimeMapEntry>;
 }
 
 const MINIMUM_DURATION_IN_MS = 0;
@@ -182,13 +189,76 @@ export const analyze = ({
     })
     .filter((p) => p.duration > MINIMUM_DURATION_IN_MS);
 
+  let detectedThreads = statistics.multiThreadedThreads;
+  const concurrencyTimeMap: ConcurrencyTimeMapEntry[] = [];
+  if (detectedThreads === undefined || detectedThreads === 0) {
+    const moduleExecutions: {
+      module: string;
+      startTime: number;
+      endTime: number;
+    }[] = [];
+    const moduleNames = dedup(mavenPlugins.map((p) => p.module));
+
+    for (const moduleName of moduleNames) {
+      const modulePlugins = mavenPlugins.filter((p) => p.module === moduleName);
+      if (modulePlugins.length > 0) {
+        const startTime = Math.min(
+          ...modulePlugins.map((p) => p.startTime.getTime()),
+        );
+        const endTime = Math.max(
+          ...modulePlugins.map((p) => p.startTime.getTime() + p.duration),
+        );
+        if (endTime > startTime) {
+          moduleExecutions.push({ module: moduleName, startTime, endTime });
+        }
+      }
+    }
+
+    if (moduleExecutions.length > 1) {
+      const points: { time: number; type: "start" | "end" }[] = [];
+      for (const exec of moduleExecutions) {
+        points.push({ time: exec.startTime, type: "start" });
+        points.push({ time: exec.endTime, type: "end" });
+      }
+
+      points.sort((a, b) => {
+        if (a.time !== b.time) {
+          return a.time - b.time;
+        }
+        return a.type === "end" ? -1 : 1;
+      });
+
+      let concurrentExecutions = 0;
+      let maxConcurrentExecutions = 0;
+      let lastTime = points.length > 0 ? points[0].time : 0;
+      for (const point of points) {
+        if (point.time > lastTime && concurrentExecutions > 0) {
+          concurrencyTimeMap.push({
+            startTime: lastTime,
+            endTime: point.time,
+            concurrency: concurrentExecutions,
+          });
+        }
+        if (point.type === "start") {
+          concurrentExecutions++;
+          maxConcurrentExecutions = Math.max(
+            maxConcurrentExecutions,
+            concurrentExecutions,
+          );
+        } else {
+          concurrentExecutions--;
+        }
+        lastTime = point.time;
+      }
+      if (maxConcurrentExecutions > 1) {
+        detectedThreads = maxConcurrentExecutions;
+      }
+    }
+  }
+
   const stats: GeneralStats = {
-    multiThreaded: ifDefinedOrDefault(
-      statistics.multiThreadedThreads,
-      (t) => t > 0,
-      false,
-    ),
-    threads: ifDefinedOrDefault(statistics.multiThreadedThreads, (t) => t, 1),
+    multiThreaded: ifDefinedOrDefault(detectedThreads, (t) => t > 1, false),
+    threads: ifDefinedOrDefault(detectedThreads, (t) => t, 1),
     status:
       statistics.buildStatus === "success"
         ? "success"
@@ -217,6 +287,7 @@ export const analyze = ({
     stats,
     tests: testStats,
     messages: determineMessages(mavenPlugins, aggregatedCompiledSources, stats),
+    concurrencyTimeMap,
   };
 };
 
@@ -232,16 +303,17 @@ const determineMessages = (
     dedup(mavenPlugins.map((p) => p.thread)).length === 1;
   const errorText = noMetricsFound
     ? "No metrics could be found. Please make sure to provide a valid maven log file with timestamp information as described above."
-    : multiThreadedNoThreads
-      ? `This seems to be a multi-threaded build with ${stats.threads} threads but the thread name cannot be found in the log file. Please make sure to configure maven logger as described above.`
-      : undefined;
-  const showInfo = modules.length > 0 && mavenPlugins.length === 0;
-  const infoText = showInfo
-    ? "Durations cannot be calculated. Please make sure that the log file contains timestamps in the expected format yyyy-MM-dd HH:mm:ss,SSS"
     : undefined;
+  const showInfo = modules.length > 0 && mavenPlugins.length === 0;
+  let infoText = showInfo
+    ? "Durations cannot be calculated. Please make sure that the log file contains timestamps in the expected format yyyy-MM-dd HH:mm:ss,SSS"
+    : "";
+  if (multiThreadedNoThreads) {
+    infoText += ` This seems to be a multi-threaded build with ${stats.threads} threads but the thread name cannot be found in the log file. Please make sure to configure maven logger as described above.`;
+  }
 
   return {
-    info: infoText,
+    info: infoText.trim() ? infoText : undefined,
     error: errorText,
   };
 };

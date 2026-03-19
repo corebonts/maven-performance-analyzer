@@ -201,4 +201,35 @@ describe("analyzer", () => {
 
     expect(analysis.mavenPlugins).toEqual<MavenPluginStats[]>([]);
   });
+
+  it("does not detect concurrency for sequential modules with same transition timestamp", () => {
+    const lines = [
+      {
+        module: "m1",
+        plugin: "p1",
+        goal: "g1",
+        startTime: new Date("2022-01-01T10:00:00Z"),
+      },
+      {
+        module: "m2",
+        plugin: "p2",
+        goal: "g2",
+        startTime: new Date("2022-01-01T10:00:05Z"),
+      },
+    ];
+
+    const analysis = analyze({
+      lines,
+      lastTimestamps: [
+        { thread: undefined, lastTimestamp: new Date("2022-01-01T10:00:10Z") },
+      ],
+      compiledSources: [],
+      statistics: {},
+      downloads: [],
+      tests: [],
+    });
+
+    expect(analysis.stats?.multiThreaded).toBeFalsy();
+    expect(analysis.stats?.threads).toEqual(1);
+  });
 });

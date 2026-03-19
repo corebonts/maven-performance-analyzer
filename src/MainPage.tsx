@@ -33,7 +33,11 @@ const MainPage = () => {
         )}
         {!hasError && mavenPluginsStats && mavenPluginsStats.length > 0 && (
           <>
-            <HeatmapCard data={mavenPluginsStats} />
+            <HeatmapCard
+              data={mavenPluginsStats}
+              stats={analyzerResult.stats}
+              concurrencyTimeMap={analyzerResult.concurrencyTimeMap}
+            />
             <TimelineCard data={mavenPluginsStats} />
             <ModulesCard data={mavenPluginsStats} />
             <MavenPluginsCard data={mavenPluginsStats} />
