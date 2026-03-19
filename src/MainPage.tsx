@@ -5,6 +5,7 @@ import { InputCard } from "./components/input/InputCard";
 import { Header } from "./Header";
 import { ModulesCard } from "./components/cards/ModulesCard";
 import { SourceCodeTreeMapCard } from "./components/cards/SourceCodeTreeMapCard";
+import { HeatmapCard } from "./components/cards/HeatmapCard";
 import { TimelineCard } from "./components/cards/TimelineCard";
 import { HelpCard } from "./components/input/HelpCard";
 import { StatisticsCard } from "./components/cards/StatisticsCard";
@@ -32,6 +33,7 @@ const MainPage = () => {
         )}
         {!hasError && mavenPluginsStats && mavenPluginsStats.length > 0 && (
           <>
+            <HeatmapCard data={mavenPluginsStats} />
             <TimelineCard data={mavenPluginsStats} />
             <ModulesCard data={mavenPluginsStats} />
             <MavenPluginsCard data={mavenPluginsStats} />

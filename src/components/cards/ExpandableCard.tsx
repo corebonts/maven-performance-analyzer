@@ -37,7 +37,7 @@ export const ExpandableCard: FC<Props> = ({
   };
 
   return (
-    <Card sx={{ margin: "20px 0" }}>
+    <Card sx={{ margin: "20px 0", overflow: "visible" }}>
       <CardHeader
         title={title}
         subheader={subheader}

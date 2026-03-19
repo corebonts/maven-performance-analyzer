@@ -19,3 +19,24 @@ export const ifDefinedOrDefault = <T, R>(
   }
   return def;
 };
+
+export const prettyMs = (ms: number): string => {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    return `${Math.round(seconds * 10) / 10}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+  if (minutes < 60) {
+    if (remainingSeconds === 0) {
+      return `${minutes}m`;
+    }
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
+};
