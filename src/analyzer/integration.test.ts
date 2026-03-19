@@ -307,4 +307,73 @@ describe("parser and analyzer", () => {
       .filter((r) => r.module === module)
       .reduce((prev, curr) => prev + curr.duration, 0);
   }
+
+  it("parallel build log", () => {
+    const content = readFileSync(
+      __dirname + "/testfiles/parallelBuild.log",
+      "utf8",
+    );
+
+    const result = analyze(parse(content));
+
+    expect(result.modules).toHaveLength(2);
+    expect(result.modules[0]).toEqual({
+      module: "module-a",
+      compiledSources: 2,
+      compiledTestSources: 0,
+      copiedResources: 0,
+      copiedTestResources: 0,
+    });
+    expect(result.modules[1]).toEqual({
+      module: "module-b",
+      compiledSources: 5,
+      compiledTestSources: 0,
+      copiedResources: 0,
+      copiedTestResources: 0,
+    });
+    // The sum of the individual plugin execution times is greater than the total time elapsed
+    // from the start of the first plugin to the end of the last, which indicates that the plugins
+    // were running in parallel.
+    expect(
+      durationSumForPlugin(result.mavenPlugins, "maven-compiler-plugin"),
+    ).toEqual(1206);
+    expect(dedup(result.mavenPlugins.map((r) => r.thread))).toEqual([
+      "mvn-builder-module-a",
+      "mvn-builder-module-b",
+    ]);
+  });
+
+  it("parallel build log without thread info", () => {
+    const content = readFileSync(
+      __dirname + "/testfiles/parallelBuildNoThread.log",
+      "utf8",
+    );
+
+    const result = analyze(parse(content));
+
+    // Without thread information, the parser can still correctly attribute the log lines to the corresponding module
+    // if the log lines are not interleaved in a way that causes ambiguity.
+    expect(result.modules).toHaveLength(2);
+    expect(result.modules[0]).toEqual({
+      module: "module-a",
+      compiledSources: 2,
+      compiledTestSources: 0,
+      copiedResources: 0,
+      copiedTestResources: 0,
+    });
+    expect(result.modules[1]).toEqual({
+      module: "module-b",
+      compiledSources: 5,
+      compiledTestSources: 0,
+      copiedResources: 0,
+      copiedTestResources: 0,
+    });
+    // The sum of the individual plugin execution times is greater than the total time elapsed
+    // from the start of the first plugin to the end of the last, which indicates that the plugins
+    // were running in parallel.
+    expect(
+      durationSumForPlugin(result.mavenPlugins, "maven-compiler-plugin"),
+    ).toEqual(1206);
+    expect(dedup(result.mavenPlugins.map((r) => r.thread))).toEqual(["main"]);
+  });
 });

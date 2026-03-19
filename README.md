@@ -19,8 +19,3 @@ A tool to analyze Maven log files graphically.
 <img alt="Timeline" src="./docs/timeline.png" />
 <img alt="Treemap" src="./docs/treemap.png" />
 
-### Known Issues
-* Timeline & source treemap incorrect for multithreaded builds
-
-### Try it out
-<a href="http://maven-performance-analyzer.vercel.app/">Demo</a>

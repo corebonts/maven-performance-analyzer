@@ -220,13 +220,23 @@ export const parseTimestamp = (timestamp: string): Date => {
 };
 
 function collectCompiledResources(lines: string[]): StatisticLine[] {
-  // TODO: Support multithreaded builds
   console.time("parsing compiler messages");
-  let module = undefined;
-  let fileOrigin: FileOrigin | undefined;
+
+  interface ActivePlugin {
+    module: string;
+    fileOrigin: FileOrigin;
+  }
+  const activeCompilerPlugins = new Map<string, ActivePlugin>();
+  const activeResourcePlugins = new Map<string, ActivePlugin>();
+
   const result: StatisticLine[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    const thread =
+      matchGroupsAndProcess(line, anyMavenLogWithTimestamp, (groups) => {
+        return groups.thread;
+      }) ?? "main";
 
     const matchCompilerPluginModule = matchGroupsAndProcess(
       line,
@@ -250,38 +260,49 @@ function collectCompiledResources(lines: string[]): StatisticLine[] {
     );
     if (matchCompilerPluginModule) {
       const mode = matchCompilerPluginModule.task as "compile" | "testCompile";
-      fileOrigin = mode === "compile" ? "main" : "test";
-      module = matchCompilerPluginModule.module;
+      const fileOrigin = mode === "compile" ? "main" : "test";
+      activeCompilerPlugins.set(thread, {
+        module: matchCompilerPluginModule.module,
+        fileOrigin,
+      });
     } else if (matchResourcesPluginModule) {
       const mode = matchResourcesPluginModule.task as
         | "resources"
         | "testResources";
-      fileOrigin = mode === "resources" ? "main" : "test";
-      module = matchResourcesPluginModule.module;
+      const fileOrigin = mode === "resources" ? "main" : "test";
+      activeResourcePlugins.set(thread, {
+        module: matchResourcesPluginModule.module,
+        fileOrigin,
+      });
     } else if (line.match(anyPluginRegexp)) {
-      module = undefined;
-      fileOrigin = undefined;
+      activeCompilerPlugins.delete(thread);
+      activeResourcePlugins.delete(thread);
     }
 
-    if (module && fileOrigin) {
+    const activeCompilerPlugin = activeCompilerPlugins.get(thread);
+    const activeResourcePlugin = activeResourcePlugins.get(thread);
+
+    if (activeCompilerPlugin) {
       const matchCompiling = line.match(mavenCompilerPluginCompilingRegexp);
       if (matchCompiling) {
         const compiledSources = parseInt(matchCompiling[1]);
         result.push({
           type: "source",
-          module: module,
+          module: activeCompilerPlugin.module,
           compiledSources,
-          compileMode: fileOrigin,
+          compileMode: activeCompilerPlugin.fileOrigin,
         });
       }
+    }
+    if (activeResourcePlugin) {
       const matchCopying = line.match(mavenResourcePluginCopyingRegexp);
       if (matchCopying) {
         const copiedResources = parseInt(matchCopying[1]);
         result.push({
           type: "resource",
-          module: module,
+          module: activeResourcePlugin.module,
           copiedResources,
-          compileMode: fileOrigin,
+          compileMode: activeResourcePlugin.fileOrigin,
         });
       }
     }

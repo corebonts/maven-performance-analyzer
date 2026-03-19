@@ -1,0 +1,22 @@
+[2026-03-18T15:42:56.792Z] [INFO] ---------------< com.example:module-a >----------------
+[2026-03-18T15:42:56.792Z] [INFO] Building module-a 1.0.0-SNAPSHOT                            [1/2]
+[2026-03-18T15:42:56.792Z] [INFO] --------------------------------[ jar ]---------------------------------
+[2026-03-18T15:42:56.892Z] [INFO] 
+[2026-03-18T15:42:56.892Z] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module-a ---
+[2026-03-18T15:42:56.793Z] [INFO] ---------------< com.example:module-b >----------------
+[2026-03-18T15:42:56.793Z] [INFO] Building module-b 1.0.0-SNAPSHOT                            [2/2]
+[2026-03-18T15:42:56.793Z] [INFO] --------------------------------[ jar ]---------------------------------
+[2026-03-18T15:42:56.893Z] [INFO] 
+[2026-03-18T15:42:56.893Z] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module-b ---
+[2026-03-18T15:42:59.602Z] [INFO] 
+[2026-03-18T15:42:59.602Z] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module-a ---
+[2026-03-18T15:42:59.903Z] [INFO] Compiling 2 source files to target/classes
+[2026-03-18T15:42:59.603Z] [INFO] 
+[2026-03-18T15:42:59.603Z] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module-b ---
+[2026-03-18T15:42:59.906Z] [INFO] Compiling 5 source files to target/classes
+[2026-03-18T15:43:00.205Z] [INFO] 
+[2026-03-18T15:43:00.205Z] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module-a ---
+[2026-03-18T15:43:02.517Z] [INFO] Building jar: /build/workspace/example/module-a/target/module-a-1.0.0-SNAPSHOT.jar
+[2026-03-18T15:43:00.206Z] [INFO] 
+[2026-03-18T15:43:00.206Z] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module-b ---
+[2026-03-18T15:43:02.518Z] [INFO] Building jar: /build/workspace/example/module-b/target/module-b-1.0.0-SNAPSHOT.jar

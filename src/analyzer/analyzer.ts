@@ -63,6 +63,8 @@ export const analyze = ({
   downloads,
   tests,
 }: ParserResult): AnalyzerResult => {
+  lines.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
   const aggregatedCompiledSources: ModuleStats[] = compiledSources.reduce(
     (arr, curr) => {
       const existing = arr.find((c) => c.module === curr.module);
@@ -149,10 +151,23 @@ export const analyze = ({
         (t) => t.thread === thread,
       )?.lastTimestamp;
       return threadLines.map(({ module, plugin, startTime }, idx) => {
-        const nextStartTime: Date | undefined =
-          idx < threadLines.length - 1
-            ? threadLines[idx + 1].startTime
-            : lastTimestamp;
+        const nextLineInSameModule = threadLines
+          .slice(idx + 1)
+          .find((line) => line.module === module);
+
+        let nextStartTime: Date | undefined;
+        if (nextLineInSameModule) {
+          nextStartTime = nextLineInSameModule.startTime;
+        } else {
+          // It's the last plugin for this module in this thread.
+          // Use the next line in the thread, regardless of module.
+          if (idx < threadLines.length - 1) {
+            nextStartTime = threadLines[idx + 1].startTime;
+          } else {
+            nextStartTime = lastTimestamp;
+          }
+        }
+
         return {
           thread: thread || "main",
           module,
