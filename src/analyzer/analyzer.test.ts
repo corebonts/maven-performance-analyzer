@@ -232,4 +232,31 @@ describe("analyzer", () => {
     expect(analysis.stats?.multiThreaded).toBeFalsy();
     expect(analysis.stats?.threads).toEqual(1);
   });
+
+  it("populates concurrencyTimeMap for single module", () => {
+    const lines = [
+      {
+        module: "m1",
+        plugin: "p1",
+        goal: "g1",
+        startTime: new Date("2022-01-01 10:00:00"),
+      },
+    ];
+    const analysis = analyze({
+      lines,
+      lastTimestamps: [
+        { thread: undefined, lastTimestamp: new Date("2022-01-01 10:00:10") },
+      ],
+      compiledSources: [],
+      statistics: {},
+      downloads: [],
+      tests: [],
+    });
+    expect(analysis.concurrencyTimeMap).toHaveLength(1);
+    expect(analysis.concurrencyTimeMap![0]).toEqual({
+      startTime: new Date("2022-01-01 10:00:00").getTime(),
+      endTime: new Date("2022-01-01 10:00:10").getTime(),
+      concurrency: 1,
+    });
+  });
 });

@@ -176,7 +176,7 @@ export const analyze = ({
       }
     }
 
-    if (moduleExecutions.length > 1) {
+    if (moduleExecutions.length > 0) {
       const points: { time: number; type: "start" | "end" }[] = [];
       for (const exec of moduleExecutions) {
         points.push({ time: exec.startTime, type: "start" });

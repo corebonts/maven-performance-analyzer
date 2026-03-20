@@ -72,7 +72,7 @@ export const HeatmapCard: FunctionComponent<Props> = ({
     }
     return {
       x: prettyMs(i * bucketWidth),
-      y: maxConcurrencyInBucket,
+      y: Math.max(1, maxConcurrencyInBucket ?? 1),
       modules: overlappingModules.map(
         (m) =>
           `${m.module} (${prettyMs(m.startTime - minTime)} - ${prettyMs(
