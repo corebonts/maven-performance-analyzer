@@ -70,14 +70,14 @@ export interface ParserResult {
 // breaks the logic of named capturing groups.
 
 const mavenGoalExecutionRegexp =
-  /^\[?(?<date>\d+-\d+-\d+[ |T]\d+:\d+:\d+[.,]?\d+Z?)\]? (\[(?<thread>[A-Z0-9a-z- _]*)\])? ?\[[A-Z]*\].*--- (?<plugin>.*):(?<version>.*):(?<goal>.*) @ (?<module>.*) ---$/;
+  /^\[?(?<date>\d+-\d+-\d+[ |T]\d+:\d+:\d+[.,]?\d+Z?)\]? (\[(?<thread>[^\]]*)\])? ?\[[A-Z]*\].*--- (?<plugin>.*):(?<version>.*):(?<goal>.*) @ (?<module>.*) ---$/;
 
 const mavenCompilerPluginRegexp =
   /^.*--- (maven-)?compiler(-plugin)?:.*:(?<task>compile|testCompile).*@ (?<module>.*) ---$/;
 const mavenResourcePluginRegexp =
   /^.*--- (maven-)?resources(-plugin)?:.*:(?<task>resources|testResources).*@ (?<module>.*) ---$/;
 const anyMavenLogWithTimestamp =
-  /^\[?(?<date>\d+-\d+-\d+[ |T]\d+:\d+:\d+[.,]?\d+Z?)\]? (\[(?<thread>[A-Z0-9a-z- _]*)\])? ?\[[A-Z]*\].*$/;
+  /^\[?(?<date>\d+-\d+-\d+[ |T]\d+:\d+:\d+[.,]?\d+Z?)\]? (\[(?<thread>[^\]]*)\])? ?\[[A-Z]*\].*$/;
 
 const anyPluginRegexp = /^.*---.*@.*---$/;
 const mavenCompilerPluginCompilingRegexp =

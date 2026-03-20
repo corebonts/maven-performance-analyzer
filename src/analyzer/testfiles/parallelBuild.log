@@ -1,22 +1,22 @@
-[2026-03-18T15:42:56.792Z] [mvn-builder-module-a] [INFO] ---------------< com.example:module-a >----------------
-[2026-03-18T15:42:56.792Z] [mvn-builder-module-a] [INFO] Building module-a 1.0.0-SNAPSHOT                            [1/2]
-[2026-03-18T15:42:56.792Z] [mvn-builder-module-a] [INFO] --------------------------------[ jar ]---------------------------------
-[2026-03-18T15:42:56.892Z] [mvn-builder-module-a] [INFO] 
-[2026-03-18T15:42:56.892Z] [mvn-builder-module-a] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module-a ---
-[2026-03-18T15:42:56.793Z] [mvn-builder-module-b] [INFO] ---------------< com.example:module-b >----------------
-[2026-03-18T15:42:56.793Z] [mvn-builder-module-b] [INFO] Building module-b 1.0.0-SNAPSHOT                            [2/2]
-[2026-03-18T15:42:56.793Z] [mvn-builder-module-b] [INFO] --------------------------------[ jar ]---------------------------------
-[2026-03-18T15:42:56.893Z] [mvn-builder-module-b] [INFO] 
-[2026-03-18T15:42:56.893Z] [mvn-builder-module-b] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module-b ---
-[2026-03-18T15:42:59.602Z] [mvn-builder-module-a] [INFO] 
-[2026-03-18T15:42:59.602Z] [mvn-builder-module-a] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module-a ---
-[2026-03-18T15:42:59.903Z] [mvn-builder-module-a] [INFO] Compiling 2 source files to target/classes
-[2026-03-18T15:42:59.603Z] [mvn-builder-module-b] [INFO] 
-[2026-03-18T15:42:59.603Z] [mvn-builder-module-b] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module-b ---
-[2026-03-18T15:42:59.906Z] [mvn-builder-module-b] [INFO] Compiling 5 source files to target/classes
-[2026-03-18T15:43:00.205Z] [mvn-builder-module-a] [INFO] 
-[2026-03-18T15:43:00.205Z] [mvn-builder-module-a] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module-a ---
-[2026-03-18T15:43:02.517Z] [mvn-builder-module-a] [INFO] Building jar: /build/workspace/example/module-a/target/module-a-1.0.0-SNAPSHOT.jar
-[2026-03-18T15:43:00.206Z] [mvn-builder-module-b] [INFO] 
-[2026-03-18T15:43:00.206Z] [mvn-builder-module-b] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module-b ---
-[2026-03-18T15:43:02.518Z] [mvn-builder-module-b] [INFO] Building jar: /build/workspace/example/module-b/target/module-b-1.0.0-SNAPSHOT.jar
+[2026-03-18T15:42:56.792Z] [mvn-builder-module.a] [INFO] ---------------< com.example:module.a >----------------
+[2026-03-18T15:42:56.792Z] [mvn-builder-module.a] [INFO] Building module.a 1.0.0-SNAPSHOT                            [1/2]
+[2026-03-18T15:42:56.792Z] [mvn-builder-module.a] [INFO] --------------------------------[ jar ]---------------------------------
+[2026-03-18T15:42:56.892Z] [mvn-builder-module.a] [INFO] 
+[2026-03-18T15:42:56.892Z] [mvn-builder-module.a] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module.a ---
+[2026-03-18T15:42:56.793Z] [mvn-builder-module.b] [INFO] ---------------< com.example:module.b >----------------
+[2026-03-18T15:42:56.793Z] [mvn-builder-module.b] [INFO] Building module.b 1.0.0-SNAPSHOT                            [2/2]
+[2026-03-18T15:42:56.793Z] [mvn-builder-module.b] [INFO] --------------------------------[ jar ]---------------------------------
+[2026-03-18T15:42:56.893Z] [mvn-builder-module.b] [INFO] 
+[2026-03-18T15:42:56.893Z] [mvn-builder-module.b] [INFO] --- maven-enforcer-plugin:3.5.0:enforce (enforce-rules) @ module.b ---
+[2026-03-18T15:42:59.602Z] [mvn-builder-module.a] [INFO] 
+[2026-03-18T15:42:59.602Z] [mvn-builder-module.a] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module.a ---
+[2026-03-18T15:42:59.903Z] [mvn-builder-module.a] [INFO] Compiling 2 source files to target/classes
+[2026-03-18T15:42:59.603Z] [mvn-builder-module.b] [INFO] 
+[2026-03-18T15:42:59.603Z] [mvn-builder-module.b] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module.b ---
+[2026-03-18T15:42:59.906Z] [mvn-builder-module.b] [INFO] Compiling 5 source files to target/classes
+[2026-03-18T15:43:00.205Z] [mvn-builder-module.a] [INFO] 
+[2026-03-18T15:43:00.205Z] [mvn-builder-module.a] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module.a ---
+[2026-03-18T15:43:02.517Z] [mvn-builder-module.a] [INFO] Building jar: /build/workspace/example/module.a/target/module.a-1.0.0-SNAPSHOT.jar
+[2026-03-18T15:43:00.206Z] [mvn-builder-module.b] [INFO] 
+[2026-03-18T15:43:00.206Z] [mvn-builder-module.b] [INFO] --- maven-jar-plugin:3.4.2:jar (default-jar) @ module.b ---
+[2026-03-18T15:43:02.518Z] [mvn-builder-module.b] [INFO] Building jar: /build/workspace/example/module.b/target/module.b-1.0.0-SNAPSHOT.jar

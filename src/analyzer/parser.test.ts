@@ -226,4 +226,14 @@ describe("parser", () => {
     expect(sourceStatistic.module).toEqual("camel-management-api");
     expect(sourceStatistic.compiledSources).toEqual(116);
   });
+
+  it("parses line with dots in thread name", () => {
+    const line =
+      "2024-03-20 08:00:00,000 [mvn-builder-module.with.dots] [INFO] --- maven-compiler-plugin:3.13.0:compile (default-compile) @ module.with.dots ---";
+
+    const result = parse(line).lines[0];
+
+    expect(result.thread).toEqual("mvn-builder-module.with.dots");
+    expect(result.module).toEqual("module.with.dots");
+  });
 });

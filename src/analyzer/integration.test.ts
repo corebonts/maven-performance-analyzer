@@ -319,14 +319,14 @@ describe("parser and analyzer", () => {
 
     expect(result.modules).toHaveLength(2);
     expect(result.modules[0]).toEqual({
-      module: "module-a",
+      module: "module.a",
       compiledSources: 2,
       compiledTestSources: 0,
       copiedResources: 0,
       copiedTestResources: 0,
     });
     expect(result.modules[1]).toEqual({
-      module: "module-b",
+      module: "module.b",
       compiledSources: 5,
       compiledTestSources: 0,
       copiedResources: 0,
@@ -339,8 +339,8 @@ describe("parser and analyzer", () => {
       durationSumForPlugin(result.mavenPlugins, "maven-compiler-plugin"),
     ).toEqual(1206);
     expect(dedup(result.mavenPlugins.map((r) => r.thread))).toEqual([
-      "mvn-builder-module-a",
-      "mvn-builder-module-b",
+      "mvn-builder-module.a",
+      "mvn-builder-module.b",
     ]);
   });
 
