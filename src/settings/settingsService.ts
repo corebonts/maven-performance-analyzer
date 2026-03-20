@@ -1,10 +1,10 @@
 export interface Settings {
-  timelineInferThreads: boolean;
+  timelineCompactFlow: boolean;
   timelineShowLabels: boolean;
 }
 
 const defaultSettings: Settings = {
-  timelineInferThreads: true,
+  timelineCompactFlow: true,
   timelineShowLabels: true,
 };
 

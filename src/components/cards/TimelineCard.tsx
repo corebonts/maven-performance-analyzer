@@ -18,6 +18,7 @@ interface DataWithDuration {
   module: string;
   startTime: Date;
   duration: number;
+  lane?: string;
 }
 
 export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
@@ -47,12 +48,13 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
   );
 
   const originalThreads = new Set(barData.map((b) => b.thread));
-  const threadInfoMissing = !!stats?.multiThreaded && originalThreads.size <= 1;
+  const threadInfoAvailable = originalThreads.size > 1;
+  const threadInfoMissing = !!stats?.multiThreaded && !threadInfoAvailable;
 
-  if (threadInfoMissing && settings.timelineInferThreads) {
+  if (settings.timelineCompactFlow) {
     barData.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
     const threadFreeTime: number[] = [];
-    const maxThreads = stats?.threads || 1;
+    const maxThreads = stats?.threads || 100;
 
     barData.forEach((b) => {
       const start = b.startTime.getTime();
@@ -74,20 +76,29 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
         }
       }
       threadFreeTime[threadIdx] = Math.max(threadFreeTime[threadIdx] || 0, end);
-      b.thread = `Inferred Thread ${threadIdx + 1}`;
+      b.lane = `Thread Lane ${threadIdx + 1}`;
     });
   }
 
   const threads = new Set(barData.map((b) => b.thread));
   const modules = new Set(barData.map((b) => b.module));
-  const multiThreaded = threads.size > 1;
+  const lanes = new Set(barData.filter((b) => b.lane).map((b) => b.lane!));
 
   const series: ApexChartProps["series"] = [
     {
       data: barData.map((b, idx) => {
+        let axisValue: string;
+        if (settings.timelineCompactFlow) {
+          axisValue = b.lane || b.thread;
+        } else if (threadInfoAvailable) {
+          axisValue = b.thread;
+        } else {
+          axisValue = b.module;
+        }
+
         return {
           fillColor: muiDistinctColors[idx % muiDistinctColors.length],
-          x: multiThreaded ? b.thread : b.module,
+          x: axisValue,
           y: [
             b.startTime.getTime(),
             new Date(b.startTime.getTime() + b.duration).getTime(),
@@ -193,15 +204,18 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
     },
   };
 
-  const height = diagramHeight(
-    multiThreaded ? threads.size : modules.size,
-    "normal",
-  );
+  const rowCount = settings.timelineCompactFlow
+    ? lanes.size
+    : threadInfoAvailable
+      ? threads.size
+      : modules.size;
+
+  const height = diagramHeight(rowCount, "normal");
 
   let subheader =
     "Visualizes execution order and dependencies for multi-module builds. Each line represents a module. In case of multithreaded builds, multiple modules are built concurrently.";
   if (threadInfoMissing) {
-    if (settings.timelineInferThreads) {
+    if (settings.timelineCompactFlow) {
       subheader +=
         " Disclaimer: Thread information was missing from the logs, so threads were inferred based on execution times. This is an approximation.";
     } else {
@@ -214,19 +228,17 @@ export const TimelineCard: FunctionComponent<Props> = ({ data, stats }) => {
   return (
     <ExpandableCard expanded={true} title="Timeline" subheader={subheader}>
       <Box sx={{ display: "flex", gap: 2, marginBottom: 2 }}>
-        {threadInfoMissing && (
-          <FormControlLabel
-            control={
-              <Switch
-                checked={settings.timelineInferThreads}
-                onChange={(e) =>
-                  setSettings({ timelineInferThreads: e.target.checked })
-                }
-              />
-            }
-            label="Infer threads"
-          />
-        )}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={settings.timelineCompactFlow}
+              onChange={(e) =>
+                setSettings({ timelineCompactFlow: e.target.checked })
+              }
+            />
+          }
+          label="Compact Execution Flow"
+        />
         <FormControlLabel
           control={
             <Switch
