@@ -259,4 +259,49 @@ describe("analyzer", () => {
       concurrency: 1,
     });
   });
+
+  it("populates concurrencyTimeMap even for detected threads", () => {
+    const thread1 = "t1";
+    const thread2 = "t2";
+
+    const lines = [
+      {
+        module: "m1",
+        plugin: "p1",
+        goal: "goal",
+        thread: thread1,
+        startTime: new Date("2022-01-01 10:00:00"),
+      },
+      {
+        module: "m2",
+        plugin: "p2",
+        goal: "goal",
+        thread: thread2,
+        startTime: new Date("2022-01-01 10:00:00"),
+      },
+    ];
+
+    const analysis = analyze({
+      lines,
+      lastTimestamps: [
+        {
+          thread: thread1,
+          lastTimestamp: new Date("2022-01-01 10:00:10"),
+        },
+        {
+          thread: thread2,
+          lastTimestamp: new Date("2022-01-01 10:00:10"),
+        },
+      ],
+      compiledSources: [],
+      statistics: {
+        multiThreadedThreads: 2,
+      },
+      downloads: [],
+      tests: [],
+    });
+
+    expect(analysis.concurrencyTimeMap).not.toHaveLength(0);
+    expect(analysis.concurrencyTimeMap?.[0].concurrency).toBe(2);
+  });
 });

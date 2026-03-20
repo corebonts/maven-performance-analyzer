@@ -151,67 +151,68 @@ export const analyze = ({
 
   let detectedThreads = statistics.multiThreadedThreads;
   const concurrencyTimeMap: ConcurrencyTimeMapEntry[] = [];
-  if (detectedThreads === undefined || detectedThreads === 0) {
-    const moduleExecutions: {
-      module: string;
-      startTime: number;
-      endTime: number;
-    }[] = [];
-    const pluginsByModule = new Map<string, MavenPluginStats[]>();
-    for (const p of mavenPlugins) {
-      const list = pluginsByModule.get(p.module) ?? [];
-      list.push(p);
-      pluginsByModule.set(p.module, list);
+  const moduleExecutions: {
+    module: string;
+    startTime: number;
+    endTime: number;
+  }[] = [];
+  const pluginsByModule = new Map<string, MavenPluginStats[]>();
+  for (const p of mavenPlugins) {
+    const list = pluginsByModule.get(p.module) ?? [];
+    list.push(p);
+    pluginsByModule.set(p.module, list);
+  }
+
+  for (const [moduleName, modulePlugins] of pluginsByModule) {
+    const startTime = Math.min(
+      ...modulePlugins.map((p) => p.startTime.getTime()),
+    );
+    const endTime = Math.max(
+      ...modulePlugins.map((p) => p.startTime.getTime() + p.duration),
+    );
+    if (endTime > startTime) {
+      moduleExecutions.push({ module: moduleName, startTime, endTime });
+    }
+  }
+
+  if (moduleExecutions.length > 0) {
+    const points: { time: number; type: "start" | "end" }[] = [];
+    for (const exec of moduleExecutions) {
+      points.push({ time: exec.startTime, type: "start" });
+      points.push({ time: exec.endTime, type: "end" });
     }
 
-    for (const [moduleName, modulePlugins] of pluginsByModule) {
-      const startTime = Math.min(
-        ...modulePlugins.map((p) => p.startTime.getTime()),
-      );
-      const endTime = Math.max(
-        ...modulePlugins.map((p) => p.startTime.getTime() + p.duration),
-      );
-      if (endTime > startTime) {
-        moduleExecutions.push({ module: moduleName, startTime, endTime });
+    points.sort((a, b) => {
+      if (a.time !== b.time) {
+        return a.time - b.time;
       }
+      return a.type === "end" ? -1 : 1;
+    });
+
+    let concurrentExecutions = 0;
+    let maxConcurrentExecutions = 0;
+    let lastTime = points.length > 0 ? points[0].time : 0;
+    for (const point of points) {
+      if (point.time > lastTime && concurrentExecutions > 0) {
+        concurrencyTimeMap.push({
+          startTime: lastTime,
+          endTime: point.time,
+          concurrency: concurrentExecutions,
+        });
+      }
+      if (point.type === "start") {
+        concurrentExecutions++;
+        maxConcurrentExecutions = Math.max(
+          maxConcurrentExecutions,
+          concurrentExecutions,
+        );
+      } else {
+        concurrentExecutions--;
+      }
+      lastTime = point.time;
     }
 
-    if (moduleExecutions.length > 0) {
-      const points: { time: number; type: "start" | "end" }[] = [];
-      for (const exec of moduleExecutions) {
-        points.push({ time: exec.startTime, type: "start" });
-        points.push({ time: exec.endTime, type: "end" });
-      }
-
-      points.sort((a, b) => {
-        if (a.time !== b.time) {
-          return a.time - b.time;
-        }
-        return a.type === "end" ? -1 : 1;
-      });
-
-      let concurrentExecutions = 0;
-      let maxConcurrentExecutions = 0;
-      let lastTime = points.length > 0 ? points[0].time : 0;
-      for (const point of points) {
-        if (point.time > lastTime && concurrentExecutions > 0) {
-          concurrencyTimeMap.push({
-            startTime: lastTime,
-            endTime: point.time,
-            concurrency: concurrentExecutions,
-          });
-        }
-        if (point.type === "start") {
-          concurrentExecutions++;
-          maxConcurrentExecutions = Math.max(
-            maxConcurrentExecutions,
-            concurrentExecutions,
-          );
-        } else {
-          concurrentExecutions--;
-        }
-        lastTime = point.time;
-      }
+    if (detectedThreads === undefined || detectedThreads === 0) {
       if (maxConcurrentExecutions > 1) {
         detectedThreads = maxConcurrentExecutions;
       }
